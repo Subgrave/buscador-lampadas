@@ -1,0 +1,171 @@
+<style>
+    .buscador-container {
+        max-width: 600px;
+        margin: 20px auto;
+        padding: 25px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        font-family: Arial, sans-serif;
+    }
+    .buscador-container h3 {
+        text-align: center;
+        margin-bottom: 20px;
+        color: #333;
+    }
+    .form-group {
+        margin-bottom: 15px;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #555;
+    }
+    .form-group input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box; /* Garante que o padding não aumente a largura total */
+    }
+    .btn-buscar {
+        width: 100%;
+        padding: 12px;
+        background-color: #5a9a13; /* Cor verde da Nuvemshop */
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+    .btn-buscar:hover {
+        background-color: #4a8010;
+    }
+    #resultado {
+        margin-top: 25px;
+        padding: 20px;
+        border-radius: 5px;
+        background-color: #f5f5f5;
+        border: 1px solid #e0e0e0;
+        display: none; /* Começa escondido */
+    }
+    #resultado.sucesso {
+        background-color: #e8f5e9;
+        border-color: #c8e6c9;
+    }
+    #resultado.erro {
+        background-color: #ffebee;
+        border-color: #ffcdd2;
+        text-align: center;
+        font-weight: bold;
+    }
+    #resultado h4 {
+        margin-top: 0;
+        text-align: center;
+        color: #1b5e20;
+    }
+    .resultado-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #ddd;
+    }
+    .resultado-item:last-child {
+        border-bottom: none;
+    }
+    .resultado-item strong {
+        color: #444;
+    }
+</style>
+
+<div class="buscador-container">
+    <h3>Descubra a Lâmpada Certa para Seu Carro</h3>
+    <form id="lampada-form">
+        <div class="form-group">
+            <label for="marca">Marca:</label>
+            <input type="text" id="marca" required placeholder="Ex: FIAT">
+        </div>
+        <div class="form-group">
+            <label for="modelo">Modelo:</label>
+            <input type="text" id="modelo" required placeholder="Ex: Grand Siena">
+        </div>
+        <div class="form-group">
+            <label for="ano">Ano:</label>
+            <input type="number" id="ano" required placeholder="Ex: 2018">
+        </div>
+        <button type="submit" class="btn-buscar" id="btn-submit">Buscar</button>
+    </form>
+    <div id="resultado"></div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('lampada-form');
+        const resultadoDiv = document.getElementById('resultado');
+        const submitButton = document.getElementById('btn-submit');
+
+        form.addEventListener('submit', function(event) {
+            event.preventDefault(); // Impede o envio padrão do formulário
+
+            const marca = document.getElementById('marca').value;
+            const modelo = document.getElementById('modelo').value;
+            const ano = document.getElementById('ano').value;
+            
+            // Substitua pela URL do seu Webhook do Make.com
+            const webhookUrl = https://hook.us2.make.com/cvp7tsy2n9j5cu18affh7ba76clyvnwj;
+
+            // Mostrar feedback visual para o usuário
+            resultadoDiv.style.display = 'none';
+            submitButton.textContent = 'Buscando...';
+            submitButton.disabled = true;
+
+            fetch(webhookUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    marca: marca,
+                    modelo: modelo,
+                    ano: ano
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                resultadoDiv.style.display = 'block'; // Mostra a caixa de resultado
+                if (data.encontrado) {
+                    resultadoDiv.className = 'sucesso';
+                    const d = data.dados;
+                    resultadoDiv.innerHTML = `
+                        <h4>Lâmpadas para ${d.marca} ${d.modelo} (${d.ano_inicio} - ${d.ano_fim})</h4>
+                        <div class="resultado-item"><strong>Farol Baixo:</strong> <span>${d.farol_baixo}</span></div>
+                        <div class="resultado-item"><strong>Farol Alto:</strong> <span>${d.farol_alto}</span></div>
+                        <div class="resultado-item"><strong>Farol de Neblina:</strong> <span>${d.farol_neblina}</span></div>
+                        <div class="resultado-item"><strong>Lanterna (Pingo):</strong> <span>${d.lanterna_pingo}</span></div>
+                        <div class="resultado-item"><strong>Seta Dianteira:</strong> <span>${d.seta_dianteira}</span></div>
+                        <div class="resultado-item"><strong>Luz de Freio:</strong> <span>${d.freio}</span></div>
+                        <div class="resultado-item"><strong>Luz de Ré:</strong> <span>${d.re}</span></div>
+                        <div class="resultado-item"><strong>Observações:</strong> <span>${d.observacoes || 'N/A'}</span></div>
+                    `;
+                } else {
+                    resultadoDiv.className = 'erro';
+                    resultadoDiv.innerHTML = '<p>Veículo não encontrado em nossa base. Verifique os dados digitados.</p>';
+                }
+            })
+            .catch(error => {
+                resultadoDiv.style.display = 'block';
+                resultadoDiv.className = 'erro';
+                resultadoDiv.innerHTML = '<p>Ocorreu um erro na comunicação. Tente novamente mais tarde.</p>';
+                console.error('Erro:', error);
+            })
+            .finally(() => {
+                // Restaura o botão
+                submitButton.textContent = 'Buscar';
+                submitButton.disabled = false;
+            });
+        });
+    });
+</script>
